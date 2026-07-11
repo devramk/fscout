@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
 use crate::read_pdf::read_pdf_utils::{is_valid_pdf};
-use crate::read_pdf::xref_utils::{get_start_xref};
+use crate::read_pdf::xref_utils::{get_startxref_idx, get_obj_map};
 
 pub fn open_pdf(path: &PathBuf) -> std::io::Result<()> {
     let mut pdf_file = File::open(path)?;
@@ -21,6 +21,8 @@ pub fn open_pdf(path: &PathBuf) -> std::io::Result<()> {
         return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Unrecognized PDF file"));
     }
     // print_pdf_object(&container);
-    let obj_map = get_start_xref(&mut pdf_file)?;
+    let start_xref_idx = get_startxref_idx(&mut pdf_file)?;
+    let obj_map = get_obj_map(&mut pdf_file, start_xref_idx)?;
+    println!("obj map: {:#?}", obj_map);
     Ok(())
 }
