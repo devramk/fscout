@@ -2,12 +2,14 @@ pub mod read_multi_file;
 pub mod read_single_file;
 pub mod models;
 pub mod read_cmd;
+mod read_pdf;
 
 use clap::Parser;
 use crate::models::Cli;
 use crate::read_multi_file::traverse_all;
 use crate::read_single_file::search_file;
 use crate::read_cmd::search_stdin;
+use crate::read_pdf::open_pdf;
 
 fn main() -> std::io::Result<()> {
     // let pattern = args().nth(1).expect("Pattern argument not found");
@@ -24,7 +26,13 @@ fn main() -> std::io::Result<()> {
                 search_file(&cli_args.pattern, &file_path)?;
             }
         } else {
-            search_file(&cli_args.pattern, &path)?;
+            if let Some(file_name) = path.file_name() {
+                if file_name.to_str().unwrap().contains(".pdf") {
+                    open_pdf(&path)?;
+                }
+            } else {
+                search_file(&cli_args.pattern, &path)?;
+            }
         }
     } else {
         std::process::exit(1);
