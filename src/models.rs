@@ -8,3 +8,9 @@ pub struct Cli {
     #[arg(short, long)]
     pub stdin: bool
 }
+
+#[derive(Debug, PartialEq)]
+pub struct PdfObject {
+    pub obj_ref: i64,
+    pub generation: i64
+}
