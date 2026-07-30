@@ -3,6 +3,7 @@ pub mod read_single_file;
 pub mod models;
 pub mod read_cmd;
 mod read_pdf;
+pub mod utils;
 
 use clap::Parser;
 use crate::models::Cli;

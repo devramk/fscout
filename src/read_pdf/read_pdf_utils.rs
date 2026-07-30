@@ -25,18 +25,18 @@ pub fn is_valid_pdf(bytes: &[u8]) -> f32 {
     -1f32
 }
 
-// pub fn print_pdf_object(bytes: &Vec<u8>) {
-//     let mut pdf_object_str = String::new();
-//     let mut obj_line = String::new();
-//     for byte in bytes {
-//         let byte = [*byte];
-//         let byte_str = std::str::from_utf8(&byte).unwrap_or_else(|_| "");
-//         obj_line.push_str(&byte_str);
-//         if byte_str == "\n" {
-//             pdf_object_str.push_str(obj_line.as_str());
-//             obj_line.clear();
-//             continue;
-//         }
-//     }
-//     print!("{}", pdf_object_str);
-// }
+pub fn print_pdf_object(bytes: &Vec<u8>) {
+    let mut pdf_object_str = String::new();
+    let mut obj_line = String::new();
+    for byte in bytes {
+        let byte = [*byte];
+        let byte_str = std::str::from_utf8(&byte).unwrap_or_else(|_| "");
+        obj_line.push_str(&byte_str);
+        if byte_str == "\n" {
+            pdf_object_str.push_str(obj_line.as_str());
+            obj_line.clear();
+            continue;
+        }
+    }
+    print!("{}", pdf_object_str);
+}
