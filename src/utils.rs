@@ -24,6 +24,6 @@ pub fn is_new_ln(byte: &std::io::Result<u8>) -> bool {
     }
 }
 
-pub fn get_pos_by_markers(bytes: &[u8], marker: &[u8]) {
-
+pub fn get_pos_by_markers(bytes: &[u8], marker: &[u8]) -> Option<usize> {
+    bytes.windows(marker.len()).position(|p| p == marker)
 }
