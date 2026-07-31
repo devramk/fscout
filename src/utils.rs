@@ -23,3 +23,7 @@ pub fn is_new_ln(byte: &std::io::Result<u8>) -> bool {
         Err(_) => false,
     }
 }
+
+pub fn get_pos_by_markers(bytes: &[u8], marker: &[u8]) {
+
+}

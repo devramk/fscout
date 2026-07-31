@@ -9,6 +9,11 @@ endobj
 **/
 pub fn get_object(bytes: &[u8], start_idx: usize, end_idx: usize) {
     let mut obj_bytes = bytes[start_idx..=end_idx].to_vec();
+    let content_bytes = match extract_obj_content(&obj_bytes) {
+        Some(content_bytes) => content_bytes,
+        None => return,
+    };
+    
 }
 
 fn extract_obj_content(bytes: &[u8]) -> Option<&[u8]> {
