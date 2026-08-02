@@ -5,7 +5,7 @@ pub mod object_parser;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
-use crate::read_pdf::object_parser::get_object;
+use crate::read_pdf::object_parser::{get_object, get_pages_obj};
 use crate::read_pdf::read_pdf_utils::{is_valid_pdf, print_pdf_object};
 use crate::read_pdf::xref_utils::{get_start_xref_idx, get_obj_map, parse_trailer_for_root};
 
@@ -36,9 +36,15 @@ pub fn open_pdf(path: &PathBuf) -> std::io::Result<()> {
         Some(obj) => *obj,
         None => return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Object not found"))
     };
-    let pages_ref =  get_object(&container, root_obj_idx, &root_obj);
-    if let Some(pages) = pages_ref {
+    let catalog_ref =  get_object(&container, root_obj_idx, &root_obj);
+    if let Some(pages) = catalog_ref {
         println!("pages: {:#?}", pages);
+        let pages_idx = match obj_map.get(&pages.obj_ref) {
+            Some(obj) => *obj,
+            None => return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Object not found"))
+        };
+        let pages_ref = get_pages_obj(&container, pages_idx, &pages);
+        println!("pages_ref: {:#?}", pages_ref);
     }
     Ok(())
 }

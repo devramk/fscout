@@ -29,18 +29,24 @@ pub fn get_object(bytes: &[u8], start_idx: usize, pdf_object: &PdfObject) -> Opt
     if !check_valid_obj(skimmed_bytes.as_slice(), &pdf_object.object_type) {
         return None;
     }
-    get_child_obj_ref(obj_bytes.as_slice(), &look_for(&pdf_object.object_type))
+    get_child_obj_ref(skimmed_bytes.as_slice(), &look_for(&pdf_object.object_type))
 }
 
 fn check_valid_obj(bytes: &[u8], obj_type: &ObjectType) -> bool {
-    return match obj_type {
+    match obj_type {
         ObjectType::Root => {
             check_type_present(bytes, get_byte_types(look_for(&ObjectType::Root)).as_slice())
                 && check_type_present(bytes, get_byte_types(look_for(&ObjectType::Catalog)).as_slice())
         }
+        ObjectType::Catalog => {
+            check_type_present(bytes, get_byte_types(look_for(&ObjectType::Catalog)).as_slice())
+        }
         ObjectType::Pages => {
             check_type_present(bytes, get_byte_types(look_for(&ObjectType::Pages)).as_slice())
                 && check_type_present(bytes, get_byte_types(look_for(&ObjectType::Kids)).as_slice())
+        }
+        ObjectType::Page => {
+            check_type_present(bytes, get_byte_types(look_for(&ObjectType::Page)).as_slice())
         }
         ObjectType::Contents => {
             check_type_present(bytes, get_byte_types(look_for(&ObjectType::Page)).as_slice())
@@ -95,9 +101,6 @@ fn get_child_obj_ref(bytes: &[u8], obj_type: &ObjectType) -> Option<PdfObject> {
         ObjectType::Catalog => {
             extract_child_obj_ref(bytes, PAGES)
         },
-        ObjectType::Pages => {
-            extract_pages_obj_ref(bytes)
-        },
         ObjectType::Page => {
             extract_child_obj_ref(bytes, CONTENTS)
         },
@@ -110,7 +113,7 @@ fn get_child_obj_ref(bytes: &[u8], obj_type: &ObjectType) -> Option<PdfObject> {
             Some((obj_ref, gen_no, is_ref)) => (obj_ref, gen_no, is_ref),
             None => return None
         };
-        let child_obj = PdfObject::new(obj_ref, gen_no, is_ref, None, ObjectType::Pages);
+        let child_obj = PdfObject::new(obj_ref, gen_no, is_ref, None, ObjectType::Catalog);
         return Some(child_obj);
     }
 
@@ -118,7 +121,7 @@ fn get_child_obj_ref(bytes: &[u8], obj_type: &ObjectType) -> Option<PdfObject> {
 }
 
 fn parse_obj_ref_str(obj_ref_str: &String) -> Option<(i64, i64, bool)> {
-    let regex = match Regex::new(r"^(\d+) (\d+) ([A-Z])$") {
+    let regex = match Regex::new(r"^(\d+) (\d+) ([A-Za-z])$") {
         Ok(regex) => regex,
         Err(_) => return None
     };
@@ -134,7 +137,7 @@ fn extract_child_obj_ref(bytes: &[u8], type_bytes: &[u8]) -> Option<Vec<u8>> {
         return None;
     }
 
-    let mut child_type_pos = get_pos_by_markers(bytes, type_bytes)? + type_bytes.len();
+    let child_type_pos = get_pos_by_markers(bytes, type_bytes)? + type_bytes.len();
     let mut child_obj_bytes: Vec<u8> = Vec::new();
     get_ref_bytes(bytes, child_type_pos, &mut child_obj_bytes);
     if child_obj_bytes.len() >= 1 {
@@ -159,7 +162,7 @@ fn get_ref_bytes(bytes: &[u8], mut child_type_pos: usize, child_obj_bytes: &mut 
     }
 }
 
-fn extract_pages_obj_ref(bytes: &[u8]) -> Option<Vec<u8>> {
+fn extract_pages_obj_ref(bytes: &[u8]) -> Option<Vec<PdfObject>> {
     if bytes.len() == 0 {
         return None;
     }
@@ -175,9 +178,46 @@ fn extract_pages_obj_ref(bytes: &[u8]) -> Option<Vec<u8>> {
             let kids_pos = get_pos_by_markers(bytes, KIDS)? + KIDS.len();
             let mut kids_bytes: Vec<u8> = Vec::new();
             get_ref_bytes(bytes, kids_pos, &mut kids_bytes);
-            let mut kids_str = convert_bytes_str(kids_bytes.as_slice());
+            let kids_str = convert_bytes_str(kids_bytes.as_slice())
+                .replace("[", "")
+                .replace("]", "").trim().to_string();
             println!("{}", kids_str);
+            let kids_ref = parse_kids_obj_ref(&kids_str);
+            let mut kids_objs: Vec<PdfObject> = Vec::new();
+            for kr in kids_ref {
+                let (obj_ref, gen_no, is_ref) = kr;
+                let obj = PdfObject::new(obj_ref, gen_no, is_ref, None, ObjectType::Page);
+                kids_objs.push(obj);
+            }
+            return Some(kids_objs);
         }
     }
     None
+}
+
+fn parse_kids_obj_ref(kids_obj_ref_str: &String) -> Vec<(i64, i64, bool)> {
+    let regex = Regex::new(r"(\d+)\s+(\d+)\s+(\w+)").unwrap();
+    regex.captures_iter(kids_obj_ref_str)
+        .filter_map(|caps| {
+            let obj_ref: i64 = caps.get(1)?.as_str().parse().ok()?;
+            let gen_no : i64 = caps.get(2)?.as_str().parse().ok()?;
+            let is_ref: bool = caps.get(3)?.as_str().to_lowercase() == "r";
+            Some((obj_ref, gen_no, is_ref))
+        }).collect()
+}
+
+pub fn get_pages_obj(bytes: &[u8], start_idx: usize, pdf_object: &PdfObject) -> Option<Vec<PdfObject>> {
+    let obj_bytes = bytes[start_idx..].to_vec();
+    let content_bytes = match extract_obj_content(&obj_bytes) {
+        Some(content_bytes) => content_bytes,
+        None => {
+            println!("Object is corrupted");
+            return None;
+        },
+    };
+    let skimmed_bytes = flatten_objs(content_bytes);
+    if !check_valid_obj(skimmed_bytes.as_slice(), &pdf_object.object_type) {
+        return None;
+    }
+    extract_pages_obj_ref(&skimmed_bytes)
 }
