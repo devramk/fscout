@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
-use crate::models::PdfObject;
+use crate::models::{ObjectType, PdfObject};
 use crate::utils::convert_byte_str;
 
 pub fn get_start_xref_idx(file: &mut File) -> std::io::Result<u64> {
@@ -102,10 +102,7 @@ pub fn parse_trailer_for_root(file: &mut File, cursor_at: u64) -> std::io::Resul
                         let generation = root_obj[1].trim().parse::<i64>()
                             .unwrap_or_else(|_| -1);
                         if obj_ref >= 0 && generation >= 0 {
-                            let pdf_obj = PdfObject {
-                                obj_ref,
-                                generation
-                            };
+                            let pdf_obj = PdfObject::new(obj_ref, generation, true, None, ObjectType::Root);
                             return Ok(pdf_obj);
                         }
                     }

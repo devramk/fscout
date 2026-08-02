@@ -36,10 +36,9 @@ pub fn open_pdf(path: &PathBuf) -> std::io::Result<()> {
         Some(obj) => *obj,
         None => return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Object not found"))
     };
-    let root_next_obj = match obj_map.get(&root_next) {
-        Some(obj) => obj,
-        None => return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Object not found"))
-    } - 1usize;
-    get_object(&container, root_obj_idx, root_next_obj);
+    let pages_ref =  get_object(&container, root_obj_idx, &root_obj);
+    if let Some(pages) = pages_ref {
+        println!("pages: {:#?}", pages);
+    }
     Ok(())
 }

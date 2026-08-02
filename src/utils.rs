@@ -1,5 +1,5 @@
 pub fn convert_bytes_str(bytes: &[u8]) -> String {
-    String::from_utf8_lossy(bytes).to_string()
+    String::from_utf8_lossy(bytes).trim().to_string()
 }
 
 pub fn convert_byte_str(byte: std::io::Result<u8>) -> String {
