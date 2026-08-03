@@ -1,10 +1,12 @@
 pub mod read_pdf_utils;
 pub mod xref_utils;
 pub mod object_parser;
+pub mod content_extractor;
 
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
+use crate::models::PdfObject;
 use crate::read_pdf::object_parser::{get_object, get_pages_obj};
 use crate::read_pdf::read_pdf_utils::{is_valid_pdf, print_pdf_object};
 use crate::read_pdf::xref_utils::{get_start_xref_idx, get_obj_map, parse_trailer_for_root};
@@ -45,6 +47,22 @@ pub fn open_pdf(path: &PathBuf) -> std::io::Result<()> {
         };
         let pages_ref = get_pages_obj(&container, pages_idx, &pages);
         println!("pages_ref: {:#?}", pages_ref);
+        if let Some(pages) = pages_ref {
+            let mut contents_refs: Vec<PdfObject> = Vec::new();
+            for page in pages {
+                let page_idx = match obj_map.get(&page.obj_ref) {
+                    Some(obj) => *obj,
+                    None => return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Object not found"))
+                };
+                let page_ref = get_object(&container, page_idx, &page);
+                if let Some(page) = page_ref {
+                    contents_refs.push(page);
+                }
+            }
+            if contents_refs.len() > 0 {
+
+            }
+        }
     }
     Ok(())
 }

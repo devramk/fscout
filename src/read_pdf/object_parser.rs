@@ -101,7 +101,7 @@ fn get_child_obj_ref(bytes: &[u8], obj_type: &ObjectType) -> Option<PdfObject> {
         ObjectType::Catalog => {
             extract_child_obj_ref(bytes, PAGES)
         },
-        ObjectType::Page => {
+        ObjectType::Contents => {
             extract_child_obj_ref(bytes, CONTENTS)
         },
         _ => None
@@ -148,7 +148,7 @@ fn extract_child_obj_ref(bytes: &[u8], type_bytes: &[u8]) -> Option<Vec<u8>> {
 
 fn get_ref_bytes(bytes: &[u8], mut child_type_pos: usize, child_obj_bytes: &mut Vec<u8>) {
     loop {
-        if bytes[child_type_pos] == b'/' || child_type_pos >= bytes.len() {
+        if child_type_pos >= bytes.len() || bytes[child_type_pos] == b'/' {
             break;
         }
         if bytes[child_type_pos] == b'\n' || bytes[child_type_pos] == b' ' {
