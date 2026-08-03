@@ -8,7 +8,7 @@ use std::io::{BufReader, Read};
 use std::path::PathBuf;
 use crate::models::PdfObject;
 use crate::read_pdf::object_parser::{get_object, get_pages_obj};
-use crate::read_pdf::read_pdf_utils::{is_valid_pdf, print_pdf_object};
+use crate::read_pdf::read_pdf_utils::{is_valid_pdf};
 use crate::read_pdf::xref_utils::{get_start_xref_idx, get_obj_map, parse_trailer_for_root};
 
 pub fn open_pdf(path: &PathBuf) -> std::io::Result<()> {
@@ -33,7 +33,6 @@ pub fn open_pdf(path: &PathBuf) -> std::io::Result<()> {
         Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
     };
     println!("root_obj: {:#?}", root_obj);
-    let root_next = root_obj.obj_ref + 1;
     let root_obj_idx = match obj_map.get(&root_obj.obj_ref) {
         Some(obj) => *obj,
         None => return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Object not found"))
