@@ -1,20 +1,11 @@
 use regex::Regex;
 use crate::models::{ObjectType, PdfObject};
-use crate::utils::{convert_bytes_str, get_pos_by_markers};
+use crate::utils::{convert_bytes_str, get_pos_by_markers, extract_obj_content, flatten_objs, get_ref_bytes, CATALOG, CONTENTS, PAGES, PAGE, KIDS, COUNT};
 
 /** extract obj contents > check if the object is valid (eg: if root obj, check if catalog is present
 * if pages, check for counts and kids, if page check for contents) > get child obj reference.
 * if child is stream or actual content, extract them.
 */
-
-const OBJ_START_MARKER: &[u8] = b"obj";
-const OBJ_END_MARKER: &[u8] = b"endobj";
-const CATALOG: &[u8] = b"/Catalog";
-const PAGES: &[u8] = b"/Pages";
-const PAGE: &[u8] = b"/Page";
-const KIDS: &[u8] = b"/Kids";
-const COUNT: &[u8] = b"/Count";
-const CONTENTS: &[u8] = b"/Contents";
 
 pub fn get_object(bytes: &[u8], start_idx: usize, pdf_object: &PdfObject) -> Option<PdfObject> {
     let obj_bytes = bytes[start_idx..].to_vec();
@@ -85,17 +76,6 @@ fn get_byte_types(obj_type: ObjectType) -> Vec<u8> {
     }
 }
 
-fn extract_obj_content(bytes: &[u8]) -> Option<&[u8]> {
-    let content_start = get_pos_by_markers(bytes, OBJ_START_MARKER)? + OBJ_START_MARKER.len();
-    let content_end = content_start
-        + get_pos_by_markers(&bytes[content_start..], OBJ_END_MARKER)?;
-    Some(&bytes[content_start..content_end])
-}
-
-fn flatten_objs(bytes: &[u8]) -> Vec<u8> {
-    bytes.iter().map(|&b| if b == b'\n' || b == b'<' || b == b'>' { b' ' } else { b }).collect()
-}
-
 fn get_child_obj_ref(bytes: &[u8], obj_type: &ObjectType) -> Option<PdfObject> {
     let child_ref: Option<Vec<u8>> = match obj_type {
         ObjectType::Catalog => {
@@ -113,7 +93,7 @@ fn get_child_obj_ref(bytes: &[u8], obj_type: &ObjectType) -> Option<PdfObject> {
             Some((obj_ref, gen_no, is_ref)) => (obj_ref, gen_no, is_ref),
             None => return None
         };
-        let child_obj = PdfObject::new(obj_ref, gen_no, is_ref, None, ObjectType::Catalog);
+        let child_obj = PdfObject::new(obj_ref, gen_no, is_ref, None, *obj_type);
         return Some(child_obj);
     }
 
@@ -144,22 +124,6 @@ fn extract_child_obj_ref(bytes: &[u8], type_bytes: &[u8]) -> Option<Vec<u8>> {
         return Some(child_obj_bytes);
     }
     None
-}
-
-fn get_ref_bytes(bytes: &[u8], mut child_type_pos: usize, child_obj_bytes: &mut Vec<u8>) {
-    loop {
-        if child_type_pos >= bytes.len() || bytes[child_type_pos] == b'/' {
-            break;
-        }
-        if bytes[child_type_pos] == b'\n' || bytes[child_type_pos] == b' ' {
-            child_type_pos += 1;
-            continue;
-        }
-        while child_type_pos < bytes.len() && bytes[child_type_pos] != b'/' {
-            child_obj_bytes.push(bytes[child_type_pos]);
-            child_type_pos += 1;
-        }
-    }
 }
 
 fn extract_pages_obj_ref(bytes: &[u8]) -> Option<Vec<PdfObject>> {

@@ -9,7 +9,7 @@ pub struct Cli {
     pub stdin: bool
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy, Eq)]
 pub enum ObjectType {
     Pages,
     Page,

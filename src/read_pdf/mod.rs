@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
 use crate::models::PdfObject;
+use crate::read_pdf::content_extractor::get_content_object;
 use crate::read_pdf::object_parser::{get_object, get_pages_obj};
 use crate::read_pdf::read_pdf_utils::{is_valid_pdf};
 use crate::read_pdf::xref_utils::{get_start_xref_idx, get_obj_map, parse_trailer_for_root};
@@ -59,7 +60,14 @@ pub fn open_pdf(path: &PathBuf) -> std::io::Result<()> {
                 }
             }
             if contents_refs.len() > 0 {
-
+                for c_ref in contents_refs {
+                    println!("Content ref: {:#?}", c_ref);
+                    let content_idx = match obj_map.get(&c_ref.obj_ref) {
+                        Some(idx) => *idx,
+                        None => return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Object not found"))
+                    };
+                    get_content_object(&container, content_idx);
+                }
             }
         }
     }
